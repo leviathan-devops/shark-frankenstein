@@ -266,11 +266,15 @@ ${chalk.bold('Environment Variables:')}
   DEEPSEEK_API_KEY     Planning/Advisory brain
   GOOGLE_API_KEY       Gemma 3 4B (Micro execution, FREE tier)
   GLM_API_KEY          GLM 4.5-flash (Macro primary)
+  SHARK_MODE           Set mode (micro/macro) for non-interactive use
+  SHARK_REGION         Gemma region (us/sea, default: sea)
+  SHARK_DEBUG          Enable verbose logging (true/false)
 
 ${chalk.bold('Examples:')}
-  shark                # Interactive mode with wizard
-  shark micro          # Direct to Micro Engineer
-  echo "fix this bug" | shark micro  # Non-interactive
+  shark                       # Interactive mode with wizard
+  shark micro                 # Direct to Micro Engineer
+  echo "fix this bug" | shark micro   # Non-interactive
+  SHARK_MODE=macro shark < task.txt   # Via env var
 
 ${chalk.gray('GitHub: https://github.com/leviathan-devops/shark-frankenstein')}
 `);
@@ -286,11 +290,34 @@ ${chalk.gray('GitHub: https://github.com/leviathan-devops/shark-frankenstein')}
   // Determine mode
   let mode: BrainMode;
 
+  // FIX: Check command line args first
   if (args[0] === 'micro') {
     mode = BrainMode.MICRO;
   } else if (args[0] === 'macro') {
     mode = BrainMode.MACRO;
+  } else if (process.env.SHARK_MODE) {
+    // FIX: Allow mode via environment variable for non-interactive use
+    const envMode = process.env.SHARK_MODE.toLowerCase();
+    if (envMode === 'micro') {
+      mode = BrainMode.MICRO;
+    } else if (envMode === 'macro') {
+      mode = BrainMode.MACRO;
+    } else {
+      console.error(chalk.red(`\n❌ Invalid SHARK_MODE: ${process.env.SHARK_MODE}. Use 'micro' or 'macro'.\n`));
+      process.exit(1);
+    }
   } else {
+    // Check if we're in non-interactive mode without a mode specified
+    const isInteractive = process.stdin.isTTY === true;
+    if (!isInteractive) {
+      console.error(chalk.red('\n❌ Mode required for non-interactive use.\n'));
+      console.log(chalk.white('Usage:'));
+      console.log(chalk.gray('  echo "task" | shark micro'));
+      console.log(chalk.gray('  echo "task" | shark macro'));
+      console.log(chalk.gray('  SHARK_MODE=micro shark < task.txt'));
+      console.log('');
+      process.exit(1);
+    }
     // Interactive wizard
     mode = await selectMode();
   }
@@ -298,12 +325,13 @@ ${chalk.gray('GitHub: https://github.com/leviathan-devops/shark-frankenstein')}
   // Check configuration
   await checkConfiguration(mode);
 
-  // Create coordinator
+  // Create coordinator with mode-appropriate settings
   const config: CoordinatorConfig = {
     mode,
-    maxIterations: 10,
+    maxIterations: mode === BrainMode.MACRO ? 15 : 10, // More iterations for complex tasks
     autoApprove: false,
     verbose: process.env.SHARK_DEBUG === 'true',
+    gemmaRegion: (process.env.SHARK_REGION as 'us' | 'sea') || 'sea',
   };
 
   const coordinator = new DualBrainCoordinator(config);
@@ -316,9 +344,24 @@ ${chalk.gray('GitHub: https://github.com/leviathan-devops/shark-frankenstein')}
     const input = await readStdin();
 
     if (input.trim()) {
-      const result = await coordinator.execute(input);
-      console.log(result.finalOutput);
-      process.exit(0);
+      // FIX: Add timeout warning for macro mode
+      if (mode === BrainMode.MACRO) {
+        console.log(chalk.gray('⏳ Macro mode: This may take a few minutes for complex tasks...\n'));
+      }
+      
+      try {
+        const result = await coordinator.execute(input);
+        console.log(result.finalOutput);
+        process.exit(0);
+      } catch (error: any) {
+        if (error.message?.includes('timeout') || error.code === 'ECONNABORTED') {
+          console.error(chalk.yellow('\n⚠️ Request timed out. Try:'));
+          console.error(chalk.gray('   - Breaking the task into smaller parts'));
+          console.error(chalk.gray('   - Using micro mode for simpler tasks'));
+          console.error(chalk.gray('   - Setting SHARK_DEBUG=true for more details'));
+        }
+        throw error;
+      }
     }
   }
 

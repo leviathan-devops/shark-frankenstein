@@ -81,7 +81,7 @@ export class GLMClient {
     this.baseUrl = config?.baseUrl || GLM_API_URL;
 
     this.client = axios.create({
-      timeout: config?.timeout || 180000,
+      timeout: config?.timeout || 300000, // 5 minutes for complex macro tasks
       headers: {
         'Content-Type': 'application/json',
       },
