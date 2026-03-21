@@ -50,13 +50,19 @@ export {
   DEFAULT_CONFIG,
 } from './config';
 
-// Guardian (file protection)
+// Guardian (file protection & agent safety rail)
 export {
   Guardian,
   GuardianConfig,
   ProtectionStatus,
   ModificationDecision,
   FileInfo,
+  ProtectionLevel,
+  ZoneType,
+  AuditEntry,
+  createTestGuardian,
+  createProductionGuardian,
+  createCIGuardian,
 } from './guardian';
 
 // Wizard (interactive mode selection)
