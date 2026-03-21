@@ -35,9 +35,9 @@ dotenv.config();
 const SHARK_ASCII = `
 ${chalk.cyan('    ╔═══════════════════════════════════╗')}
 ${chalk.cyan('    ║')}                                   ${chalk.cyan('║')}
-${chalk.cyan('    ║')}   ${chalk.bold.white('🦈 SHARK AGENT v1.0')}            ${chalk.cyan('║')}
+${chalk.cyan('    ║')}      ${chalk.bold.white('🦈 SHARK AGENT v1.0')}        ${chalk.cyan('║')}
 ${chalk.cyan('    ║')}                                   ${chalk.cyan('║')}
-${chalk.cyan('    ║')}   ${chalk.gray('Dual-Brain Architecture')}         ${chalk.cyan('║')}
+${chalk.cyan('    ║')}    ${chalk.gray('Dual-Brain Architecture')}       ${chalk.cyan('║')}
 ${chalk.cyan('    ║')}                                   ${chalk.cyan('║')}
 ${chalk.cyan('    ╚═══════════════════════════════════╝')}
 `;
@@ -309,7 +309,9 @@ ${chalk.gray('GitHub: https://github.com/leviathan-devops/shark-frankenstein')}
   const coordinator = new DualBrainCoordinator(config);
 
   // Check for piped input (non-interactive)
-  if (!process.stdin.isTTY) {
+  // FIX: Handle Docker where isTTY returns undefined instead of false
+  const isInteractive = process.stdin.isTTY === true;
+  if (!isInteractive) {
     const { readStdin } = await import('./utils/stdin');
     const input = await readStdin();
 

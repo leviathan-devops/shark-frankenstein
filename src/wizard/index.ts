@@ -20,8 +20,8 @@ export interface WizardResult {
 const SHARK_BANNER = `
 ${chalk.cyan('    ╔═══════════════════════════════════╗')}
 ${chalk.cyan('    ║')}                                   ${chalk.cyan('║')}
-${chalk.cyan('    ║')}   ${chalk.bold.white('🦈 SHARK AGENT')}                 ${chalk.cyan('║')}
-${chalk.cyan('    ║')}   ${chalk.gray('Dual-Brain Architecture')}         ${chalk.cyan('║')}
+${chalk.cyan('    ║')}      ${chalk.bold.white('🦈 SHARK AGENT')}            ${chalk.cyan('║')}
+${chalk.cyan('    ║')}    ${chalk.gray('Dual-Brain Architecture')}       ${chalk.cyan('║')}
 ${chalk.cyan('    ║')}                                   ${chalk.cyan('║')}
 ${chalk.cyan('    ╚═══════════════════════════════════╝')}
 `;
