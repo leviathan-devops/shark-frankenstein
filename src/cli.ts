@@ -60,20 +60,26 @@ ${chalk.green('Best for:')}
 ${chalk.yellow('Like:')} Special Forces - surgical precision`,
 
   macro: `
-${chalk.magenta('🧠 MACRO ENGINEER')} - Systems Engineering
+${chalk.magenta('🧠 MACRO ENGINEER')} - Autonomous Systems Architect
 ${chalk.gray('─'.repeat(40))}
 
-${chalk.white('Architecture:')} GLM 4.5-flash (PRIMARY) + DeepSeek R1 (COPILOT)
-${chalk.white('Cost:')} GLM tokens + DeepSeek tokens
+${chalk.white('Architecture:')} GLM 4.5-flash (PRIMARY) + DeepSeek R1 (ADVISORY)
+${chalk.white('Cost:')} GLM tokens + DeepSeek tokens (not free)
+
+${chalk.green('Capabilities:')}
+  • Multi-iteration autonomous execution (up to 15)
+  • Built-in tools: file read/write, shell, search
+  • Strategic consultation between iterations
+  • Self-detects completion, auto-refines output
 
 ${chalk.green('Best for:')}
+  • Complex multi-step orchestration
   • Multi-file architecture
   • DevOps & CI/CD pipelines
-  • Full feature development
-  • Complex refactoring
-  • System design
+  • Autonomous project scaffolding
+  • System migrations
 
-${chalk.yellow('Like:')} Air Force - full engineering capabilities`
+${chalk.yellow('Like:')} Air Traffic Control - orchestrates chaos`
 };
 
 /**

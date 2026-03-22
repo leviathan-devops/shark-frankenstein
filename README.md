@@ -42,18 +42,24 @@ shark
 └─────────────────────────────────────────────────────┘
 ```
 
-### Macro Engineer (Systems Engineering)
+### Macro Engineer (Autonomous Systems Architect)
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  🧠 MACRO ENGINEER                                  │
+│  🧠 MACRO ENGINEER - Autonomous Systems Architect   │
 │                                                     │
 │  GLM 4.5-flash ─────PRIMARY────→ Execution          │
 │  DeepSeek R1   ─────ADVISORY────→ Strategy          │
 │                                                     │
-│  ✅ Autonomous multi-step execution                 │
-│  ✅ Best for: Architecture, DevOps, CI/CD           │
-│  ✅ Like: Air Force - full engineering capabilities │
+│  ✅ Multi-iteration autonomous execution (up to 15) │
+│  ✅ Built-in tools: file read/write, shell, search  │
+│  ✅ Strategic consultation between iterations       │
+│  ✅ Self-detects completion, auto-refines output    │
+│  ✅ Best for: Complex orchestration, DevOps, CI/CD  │
+│     multi-file architecture, system migrations,     │
+│     autonomous project scaffolding                  │
+│  ⚠️  Cost: GLM tokens + DeepSeek tokens (not free)  │
+│  ✅ Like: Air Traffic Control - orchestrates chaos  │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -139,7 +145,9 @@ shark-frankenstein/
 │   ├── config/
 │   │   └── index.ts         # Configuration management
 │   ├── guardian/
-│   │   └── index.ts         # File protection system
+│   │   └── index.ts         # Universal agent firewall
+│   ├── testing/
+│   │   └── *.ts             # Test runner modules
 │   ├── utils/
 │   │   ├── stdin.ts         # Stdin utility
 │   │   └── index.ts         # Utils export
@@ -147,6 +155,12 @@ shark-frankenstein/
 │   │   └── index.ts         # Interactive wizard
 │   ├── cli.ts               # CLI entry point
 │   └── index.ts             # Main exports
+├── testing/
+│   ├── TESTING_PROTOCOL.md  # 2-stage testing docs
+│   ├── run-stage1.sh        # Docker sandbox tests
+│   ├── run-stage2.sh        # Local device tests
+│   ├── stage1-docker/       # Docker test scripts
+│   └── stage2-local/        # Local test scripts
 ├── package.json
 ├── tsconfig.json
 ├── .env.example
@@ -169,12 +183,14 @@ shark-frankenstein/
 
 ### Use Macro Engineer When:
 
-- 🔄 Complex multi-step orchestration
+- 🔄 **Multi-step autonomous execution** - iterates up to 15 times
 - 🚀 Full DevOps pipeline setup
-- ✨ Autonomous project scaffolding
+- ✨ Autonomous project scaffolding (creates entire project structures)
+- 📁 Multi-file architecture with cross-file dependencies
 - 🔀 Workflows requiring independent decision-making
 - 📐 Large-scale system migrations
 - 🤖 Tasks needing minimal human oversight
+- ⚠️ **Willing to pay** for GLM tokens (not free like Micro)
 
 ---
 
@@ -327,9 +343,12 @@ npm link
 
 ### Phase 1: Frankenstein CLI ✅ (Current)
 - TypeScript implementation
-- Dual-brain architecture
+- Dual-brain architecture (Micro: DeepSeek+Gemma, Macro: GLM+DeepSeek)
 - Micro/Macro engineer modes
 - Interactive wizard
+- Guardian universal firewall (Docker + Local protection)
+- 2-Stage Testing Protocol (Docker → Local)
+- Non-interactive mode support
 
 ### Phase 2: Rust Kernel (Future)
 - Native Rust implementation
