@@ -134,23 +134,22 @@ export function validateConfig(config: SharkConfig): {
   const warnings: string[] = [];
   const keys = getApiKeys();
 
+  // ALL API keys are MANDATORY - no optional keys
   if (config.mode === BrainMode.MICRO) {
-    // Micro requires Gemma
+    // Micro requires Gemma (execution) + DeepSeek (planning)
     if (!keys.gemma) {
-      errors.push('GEMMA_API_KEY or GOOGLE_API_KEY is required for Micro Engineer mode');
+      errors.push('GOOGLE_API_KEY is required for Micro Engineer mode (Gemma execution brain)');
     }
-    // DeepSeek is optional but recommended
     if (!keys.deepseek) {
-      warnings.push('DEEPSEEK_API_KEY not set. Planning brain will be disabled.');
+      errors.push('DEEPSEEK_API_KEY is required for Micro Engineer mode (DeepSeek planning brain)');
     }
   } else if (config.mode === BrainMode.MACRO) {
-    // Macro requires GLM
+    // Macro requires GLM (primary) + DeepSeek (advisory)
     if (!keys.glm) {
       errors.push('GLM_API_KEY or GLM_CODING_PLAN_KEY is required for Macro Engineer mode');
     }
-    // DeepSeek is optional but recommended
     if (!keys.deepseek) {
-      warnings.push('DEEPSEEK_API_KEY not set. Advisory brain will be disabled.');
+      errors.push('DEEPSEEK_API_KEY is required for Macro Engineer mode (DeepSeek advisory brain)');
     }
   }
 
