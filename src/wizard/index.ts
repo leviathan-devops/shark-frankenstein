@@ -46,13 +46,14 @@ const MODE_INFO: Record<'micro' | 'macro', ModeInfo> = {
     title: 'Micro Engineer',
     emoji: '🦈',
     color: chalk.cyan,
-    description: 'Precision Coding',
+    description: 'Full-Stack AI Coder (FREE)',
     details: [
-      'DeepSeek R1 thinks → Gemma 3 4B does',
-      'FREE execution (14k RPD)',
-      'Best for: single-file, syntax fixes, unit tests',
+      'DeepSeek R1 strategist + Gemma 3 4B executor',
+      'FREE execution: 14k requests/day via Google AI Studio',
+      'Full capabilities: features, refactoring, debugging,',
+      '  multi-file work, architecture, tests, DevOps',
     ],
-    comparison: 'Like Special Forces - surgical precision',
+    comparison: 'Like a 10x engineer with infinite stamina - FREE',
   },
   macro: {
     title: 'Macro Engineer',
@@ -92,13 +93,13 @@ export async function runWizard(): Promise<WizardResult> {
     choices: [
       {
         name: 'micro',
-        message: chalk.cyan('🦈 Micro') + chalk.gray(' - Precision coding (FREE)'),
-        hint: 'Linear tasks, single-file, syntax fixes',
+        message: chalk.cyan('🦈 Micro') + chalk.gray(' - Full-stack AI coder (FREE)'),
+        hint: 'DeepSeek R1 + Gemma 3 4B - Complete engineering',
       },
       {
         name: 'macro',
-        message: chalk.magenta('🧠 Macro') + chalk.gray(' - Systems engineering'),
-        hint: 'Architecture, DevOps, CI/CD',
+        message: chalk.magenta('🧠 Macro') + chalk.gray(' - Autonomous systems'),
+        hint: 'GLM 4.5 + DeepSeek R1 - Complex orchestration',
       },
     ],
   });

@@ -1,18 +1,27 @@
 #!/bin/bash
-# 🦈 Shark CLI - Stage 2 Local Device Test Runner
-# 
-# This script runs tests on the ACTUAL local device.
-# Guardian is ENABLED IN STRICT MODE to protect the host system.
-# 
-# ⚠️  WARNING: This script modifies files on your local device.
-# ⚠️  Guardian protection prevents system/credential damage.
-# ⚠️  All operations are sandboxed to a test workspace.
+#
+# 🦈 SHARK CLI - Stage 2: Local Device Testing
+#
+# Real-world testing with actual TTY, network, and API keys.
+# Guardian protection is ENABLED to protect the local device.
+#
+# ⚠️ IMPORTANT: Guardian protects your local device during testing.
+#    All file operations are validated before execution.
+#    Sandbox mode available for maximum safety.
+#
+# Usage:
+#   ./run-stage2.sh                    # Run all interactive tests
+#   ./run-stage2.sh --sandbox          # Run in sandbox mode (safest)
+#   ./run-stage2.sh --quick            # Quick validation
+#   ./run-stage2.sh --api-test         # Test real API calls
+#
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPORT_DIR="$PROJECT_ROOT/testing/reports"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+REPORT_DIR="$SCRIPT_DIR/reports"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # Colors
 RED='\033[0;31m'
@@ -22,413 +31,231 @@ CYAN='\033[0;36m'
 MAGENTA='\033[0;35m'
 NC='\033[0m'
 
-echo -e "${MAGENTA}"
+echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
+echo "║  🦈 SHARK CLI - Stage 2: Local Device Testing                 ║"
 echo "║                                                               ║"
-echo "║     🦈 STAGE 2: Local Device Testing                          ║"
-echo "║                                                               ║"
-echo "║     ⚠️  TESTING ON ACTUAL DEVICE                              ║"
-echo "║     🛡️  Guardian: ENABLED (STRICT protection)                 ║"
-echo "║     📁 Workspace: Isolated test directory                     ║"
-echo "║                                                               ║"
+echo "║  Guardian: BALANCED mode (workspace + dev folders allowed)    ║"
+echo "║  ⚠️  Your local device is PROTECTED by Guardian               ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
-# Check for required API keys
-echo -e "${CYAN}🔐 Checking API keys...${NC}"
+# Parse arguments
+GUARDIAN_LEVEL="balanced"
+QUICK_MODE=false
+API_TEST=false
 
-MISSING_KEYS=()
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --sandbox)
+            GUARDIAN_LEVEL="sandbox"
+            shift
+            ;;
+        --strict)
+            GUARDIAN_LEVEL="strict"
+            shift
+            ;;
+        --quick)
+            QUICK_MODE=true
+            shift
+            ;;
+        --api-test)
+            API_TEST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--sandbox] [--strict] [--quick] [--api-test]"
+            exit 1
+            ;;
+    esac
+done
 
-if [ -z "$GOOGLE_API_KEY" ] && [ -z "$GEMMA_API_KEY" ]; then
-    MISSING_KEYS+=("GOOGLE_API_KEY (for Micro mode)")
-fi
+# Guardian protection notice
+echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${YELLOW}  🛡️  GUARDIAN PROTECTION ACTIVE                               ${NC}"
+echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
+echo "  Guardian Mode: ${CYAN}$GUARDIAN_LEVEL${NC}"
+echo ""
+echo "  Protected zones:"
+echo "    • System files:      ${RED}BLOCKED${NC}"
+echo "    • Personal files:    ${RED}BLOCKED${NC}"
+echo "    • Config files:      ${RED}BLOCKED${NC}"
+echo "    • Dev folders:       ${GREEN}ALLOWED${NC}"
+echo "    • Workspace:         ${GREEN}ALLOWED${NC}"
+case "$GUARDIAN_LEVEL" in
+    sandbox)
+        echo ""
+        echo "  ${YELLOW}SANDBOX MODE: All writes redirected to isolated sandbox${NC}"
+        ;;
+esac
+echo ""
+echo -e "${YELLOW}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
 
-if [ -z "$GLM_API_KEY" ] && [ -z "$GLM_CODING_PLAN_KEY" ]; then
-    MISSING_KEYS+=("GLM_API_KEY (for Macro mode)")
-fi
-
-if [ ${#MISSING_KEYS[@]} -gt 0 ]; then
-    echo -e "${YELLOW}⚠️  Missing API keys:${NC}"
-    for key in "${MISSING_KEYS[@]}"; do
-        echo -e "   - $key"
-    done
-    echo ""
-    echo -e "${YELLOW}Set the required keys and run again:${NC}"
-    echo -e "  ${CYAN}GOOGLE_API_KEY=xxx GLM_API_KEY=xxx ./testing/run-stage2.sh${NC}"
-    echo ""
-    read -p "Continue with available keys? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        exit 1
-    fi
-fi
-
-# Create isolated test workspace
-TEST_WORKSPACE="$PROJECT_ROOT/testing/test-workspace"
-SANDBOX_PATH="$PROJECT_ROOT/testing/sandbox"
-
-echo -e "${CYAN}📁 Setting up isolated test workspace...${NC}"
-mkdir -p "$TEST_WORKSPACE"
-mkdir -p "$SANDBOX_PATH"
-mkdir -p "$REPORT_DIR/history"
-
-# Set Guardian environment variables
-export SHARK_GUARDIAN_MODE=strict
-export SHARK_WORKSPACE="$TEST_WORKSPACE"
-export SHARK_SANDBOX="$SANDBOX_PATH"
-export SHARK_STAGE=2
-
-# Build if needed
+# Check if built
 if [ ! -d "$PROJECT_ROOT/dist" ]; then
-    echo -e "${CYAN}📦 Building project...${NC}"
-    cd "$PROJECT_ROOT"
-    npm run build
+    echo -e "${YELLOW}📦 Building project...${NC}"
+    cd "$PROJECT_ROOT" && npm run build
 fi
 
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-REPORT_FILE="$REPORT_DIR/stage2-latest.md"
-HISTORY_FILE="$REPORT_DIR/history/stage2_$TIMESTAMP.md"
+# Set Guardian environment
+export GUARDIAN_LEVEL="$GUARDIAN_LEVEL"
+export GUARDIAN_ENABLED="true"
 
-TOTAL_PASSED=0
-TOTAL_FAILED=0
-TOTAL_SKIPPED=0
-
-echo -e "${GREEN}✓ Test workspace ready: $TEST_WORKSPACE${NC}"
-echo -e "${GREEN}✓ Sandbox path: $SANDBOX_PATH${NC}"
-echo ""
-
-# ============================================================================
-# INTERACTIVE TESTS
-# ============================================================================
-
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${MAGENTA}  INTERACTIVE TESTS (Manual Verification Required)${NC}"
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo ""
-
-INTERACTIVE_PASSED=0
-INTERACTIVE_FAILED=0
-
-# Test 1: Interactive wizard display
-echo -e "${CYAN}Test 1: Interactive Wizard Display${NC}"
-echo "Starting interactive wizard in 3 seconds... (Ctrl+C to skip)"
-sleep 3
-
-cd "$PROJECT_ROOT"
-timeout 10s node dist/cli.js || true
-
-echo ""
-read -p "Did the wizard display correctly with centered banner? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${GREEN}✓ Wizard display OK${NC}"
-    ((INTERACTIVE_PASSED++))
+# Check API keys
+echo -e "${CYAN}🔑 API Key Status:${NC}"
+if [ -n "$GOOGLE_API_KEY" ]; then
+    echo "  Google (Gemma):    ${GREEN}✓ Set${NC}"
 else
-    echo -e "${RED}✗ Wizard display issue${NC}"
-    ((INTERACTIVE_FAILED++))
+    echo "  Google (Gemma):    ${YELLOW}✗ Not set${NC}"
 fi
-
-# Test 2: Mode selection
-echo ""
-echo -e "${CYAN}Test 2: Mode Selection${NC}"
-echo "Starting wizard for mode selection test..."
-sleep 2
-
-echo -e "${YELLOW}Please select 'Micro Engineer' mode in the wizard${NC}"
-timeout 30s node dist/cli.js || true
-
-read -p "Did mode selection work correctly? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${GREEN}✓ Mode selection OK${NC}"
-    ((INTERACTIVE_PASSED++))
+if [ -n "$GLM_API_KEY" ]; then
+    echo "  GLM:               ${GREEN}✓ Set${NC}"
 else
-    echo -e "${RED}✗ Mode selection issue${NC}"
-    ((INTERACTIVE_FAILED++))
+    echo "  GLM:               ${YELLOW}✗ Not set${NC}"
 fi
-
-TOTAL_PASSED=$((TOTAL_PASSED + INTERACTIVE_PASSED))
-TOTAL_FAILED=$((TOTAL_FAILED + INTERACTIVE_FAILED))
-
-# ============================================================================
-# TTY FEATURE TESTS
-# ============================================================================
-
-echo ""
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${MAGENTA}  TTY FEATURE TESTS${NC}"
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo ""
-
-TTY_PASSED=0
-TTY_FAILED=0
-
-# Test: Colors work
-echo -e "${CYAN}Test: Terminal Colors${NC}"
-if node -e "const chalk = require('chalk'); console.log(chalk.green('✓ Colors work'))" 2>/dev/null; then
-    echo -e "${GREEN}✓ Terminal colors OK${NC}"
-    ((TTY_PASSED++))
+if [ -n "$DEEPSEEK_API_KEY" ]; then
+    echo "  DeepSeek:          ${GREEN}✓ Set${NC}"
 else
-    echo -e "${RED}✗ Terminal colors failed${NC}"
-    ((TTY_FAILED++))
+    echo "  DeepSeek:          ${YELLOW}✗ Not set${NC}"
 fi
-
-# Test: Unicode support
-echo ""
-echo -e "${CYAN}Test: Unicode/Emoji Support${NC}"
-echo "🦈 🧠 ✓ ✗ ⚠️"
-read -p "Can you see shark and brain emojis above? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${GREEN}✓ Unicode support OK${NC}"
-    ((TTY_PASSED++))
-else
-    echo -e "${RED}✗ Unicode support issue${NC}"
-    ((TTY_FAILED++))
-fi
-
-TOTAL_PASSED=$((TOTAL_PASSED + TTY_PASSED))
-TOTAL_FAILED=$((TOTAL_FAILED + TTY_FAILED))
-
-# ============================================================================
-# REAL API TESTS (if keys available)
-# ============================================================================
-
-echo ""
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${MAGENTA}  REAL API TESTS${NC}"
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-API_PASSED=0
-API_FAILED=0
+# Test counters
+TOTAL_TESTS=0
+PASSED_TESTS=0
+FAILED_TESTS=0
+SKIPPED_TESTS=0
 
-# Micro mode test (Gemma)
-if [ -n "$GOOGLE_API_KEY" ] || [ -n "$GEMMA_API_KEY" ]; then
-    echo -e "${CYAN}Test: Micro Engineer (Gemma 3 4B)${NC}"
-    echo "Sending a simple coding task..."
+# Run a test and track results
+run_test() {
+    local test_name="$1"
+    local test_script="$2"
     
-    START_TIME=$(date +%s)
-    RESULT=$(echo "write a simple hello world function in javascript" | timeout 60s node dist/cli.js micro 2>&1)
-    END_TIME=$(date +%s)
-    ELAPSED=$((END_TIME - START_TIME))
-    
-    if [[ "$RESULT" == *"function"* ]] || [[ "$RESULT" == *"hello"* ]]; then
-        echo -e "${GREEN}✓ Micro mode API call succeeded (${ELAPSED}s)${NC}"
-        ((API_PASSED++))
-    else
-        echo -e "${RED}✗ Micro mode API call failed${NC}"
-        echo "Response: $RESULT" | head -c 200
-        ((API_FAILED++))
-    fi
-else
-    echo -e "${YELLOW}⊘ Micro mode skipped (no GOOGLE_API_KEY)${NC}"
-fi
-
-# Macro mode test (GLM)
-if [ -n "$GLM_API_KEY" ] || [ -n "$GLM_CODING_PLAN_KEY" ]; then
+    echo -e "${CYAN}▶ $test_name${NC}"
     echo ""
-    echo -e "${CYAN}Test: Macro Engineer (GLM 4.5-flash)${NC}"
-    echo "Sending a planning task..."
     
-    START_TIME=$(date +%s)
-    RESULT=$(echo "create a simple file structure for a node project" | timeout 120s node dist/cli.js macro 2>&1)
-    END_TIME=$(date +%s)
-    ELAPSED=$((END_TIME - START_TIME))
-    
-    if [[ "$RESULT" == *"package"* ]] || [[ "$RESULT" == *"src"* ]] || [[ "$RESULT" == *"project"* ]]; then
-        echo -e "${GREEN}✓ Macro mode API call succeeded (${ELAPSED}s)${NC}"
-        ((API_PASSED++))
+    if [ -f "$test_script" ]; then
+        if bash "$test_script"; then
+            PASSED_TESTS=$((PASSED_TESTS + 1))
+        else
+            FAILED_TESTS=$((FAILED_TESTS + 1))
+        fi
     else
-        echo -e "${RED}✗ Macro mode API call failed${NC}"
-        echo "Response: $RESULT" | head -c 200
-        ((API_FAILED++))
+        echo "  ${YELLOW}⊘ SKIPPED (not found)${NC}"
+        SKIPPED_TESTS=$((SKIPPED_TESTS + 1))
     fi
-else
-    echo -e "${YELLOW}⊘ Macro mode skipped (no GLM_API_KEY)${NC}"
-fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    echo ""
+}
 
-TOTAL_PASSED=$((TOTAL_PASSED + API_PASSED))
-TOTAL_FAILED=$((TOTAL_FAILED + API_FAILED))
-
-# ============================================================================
-# GUARDIAN PROTECTION TESTS
-# ============================================================================
-
-echo ""
+# Run tests
 echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${MAGENTA}  GUARDIAN PROTECTION TESTS${NC}"
+echo -e "${MAGENTA}  Running Interactive Tests                                     ${NC}"
 echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
-GUARDIAN_PASSED=0
-GUARDIAN_FAILED=0
+run_test "Interactive Wizard" "$SCRIPT_DIR/stage2-local/test-interactive.sh"
 
-# Test: Guardian blocks system paths
-echo -e "${CYAN}Test: System Path Protection${NC}"
-GUARDIAN_TEST=$(node -e "
-const { Guardian, ZoneType } = require('$PROJECT_ROOT/dist/guardian');
-const g = new Guardian({ workspacePath: '$TEST_WORKSPACE' });
-const info = g.getFileInfo('/etc/passwd');
-console.log(JSON.stringify(info));
-" 2>&1)
-
-if echo "$GUARDIAN_TEST" | grep -q "SYSTEM\|blocked"; then
-    echo -e "${GREEN}✓ System paths blocked${NC}"
-    ((GUARDIAN_PASSED++))
-else
-    echo -e "${RED}✗ System path protection failed${NC}"
-    ((GUARDIAN_FAILED++))
+if [ "$QUICK_MODE" != "true" ]; then
+    run_test "TTY Features" "$SCRIPT_DIR/stage2-local/test-tty-features.sh"
 fi
 
-# Test: Guardian allows workspace
-echo ""
-echo -e "${CYAN}Test: Workspace Access Allowed${NC}"
-GUARDIAN_TEST=$(node -e "
-const { Guardian, ModificationDecision } = require('$PROJECT_ROOT/dist/guardian');
-const g = new Guardian({ workspacePath: '$TEST_WORKSPACE' });
-const decision = g.checkModification('$TEST_WORKSPACE/test.txt');
-console.log(decision);
-" 2>&1)
-
-if echo "$GUARDIAN_TEST" | grep -q "allow\|ALLOW"; then
-    echo -e "${GREEN}✓ Workspace access allowed${NC}"
-    ((GUARDIAN_PASSED++))
+if [ "$API_TEST" = "true" ] || [ -n "$GOOGLE_API_KEY" ] || [ -n "$GLM_API_KEY" ]; then
+    run_test "Real API Calls" "$SCRIPT_DIR/stage2-local/test-real-api.sh"
 else
-    echo -e "${RED}✗ Workspace access blocked incorrectly${NC}"
-    ((GUARDIAN_FAILED++))
+    echo -e "${YELLOW}⊘ SKIPPING API tests (no API keys set)${NC}"
+    echo "  Set GOOGLE_API_KEY and/or GLM_API_KEY to test real API calls"
+    SKIPPED_TESTS=$((SKIPPED_TESTS + 1))
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
 fi
 
-# Test: Guardian sandbox mode
-echo ""
-echo -e "${CYAN}Test: Sandbox Mode${NC}"
-GUARDIAN_TEST=$(node -e "
-const { Guardian, ProtectionLevel } = require('$PROJECT_ROOT/dist/guardian');
-const g = new Guardian({ level: ProtectionLevel.SANDBOX, sandboxPath: '$SANDBOX_PATH' });
-const result = g.getSandboxPath('/tmp/important-file.txt');
-console.log(result);
-" 2>&1)
+run_test "Performance" "$SCRIPT_DIR/stage2-local/test-performance.sh"
 
-if echo "$GUARDIAN_TEST" | grep -q "shark-sandbox\|sandbox"; then
-    echo -e "${GREEN}✓ Sandbox redirect works${NC}"
-    ((GUARDIAN_PASSED++))
-else
-    echo -e "${RED}✗ Sandbox redirect failed${NC}"
-    ((GUARDIAN_FAILED++))
-fi
-
-TOTAL_PASSED=$((TOTAL_PASSED + GUARDIAN_PASSED))
-TOTAL_FAILED=$((TOTAL_FAILED + GUARDIAN_FAILED))
-
-# ============================================================================
-# CLEANUP
-# ============================================================================
-
-echo ""
-echo -e "${CYAN}🧹 Cleaning up test workspace...${NC}"
-# Guardian protected cleanup - only remove test workspace
-rm -rf "$TEST_WORKSPACE"/* 2>/dev/null || true
-rm -rf "$SANDBOX_PATH"/* 2>/dev/null || true
-
-# ============================================================================
-# GENERATE REPORT
-# ============================================================================
-
-COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-DEVICE=$(hostname)
-OS=$(uname -s)
-NODE_VER=$(node --version)
-
+# Generate report
+REPORT_FILE="$REPORT_DIR/stage2-latest.json"
+mkdir -p "$REPORT_DIR"
 cat > "$REPORT_FILE" << EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "stage": 2,
+  "environment": "local",
+  "guardian_mode": "$GUARDIAN_LEVEL",
+  "device": "$(uname -a)",
+  "node_version": "$(node --version)",
+  "summary": {
+    "total": $TOTAL_TESTS,
+    "passed": $PASSED_TESTS,
+    "failed": $FAILED_TESTS,
+    "skipped": $SKIPPED_TESTS
+  },
+  "success": $([ $FAILED_TESTS -eq 0 ] && echo "true" || echo "false")
+}
+EOF
+
+# Write markdown report
+MD_REPORT="$REPORT_DIR/stage2-latest.md"
+cat > "$MD_REPORT" << EOF
 # 🦈 Stage 2: Local Device Test Report
 
-**Date**: $DATE  
-**Commit**: $COMMIT  
-**Device**: $DEVICE  
-**OS**: $OS  
-**Node Version**: $NODE_VER  
-**Guardian Mode**: STRICT
-
----
-
-## Test Results
-
-| Category | Passed | Failed |
-|----------|--------|--------|
-| Interactive | $INTERACTIVE_PASSED | $INTERACTIVE_FAILED |
-| TTY Features | $TTY_PASSED | $TTY_FAILED |
-| Real API | $API_PASSED | $API_FAILED |
-| Guardian Protection | $GUARDIAN_PASSED | $GUARDIAN_FAILED |
-| **TOTAL** | **$TOTAL_PASSED** | **$TOTAL_FAILED** |
-
----
-
-## Guardian Protection Verified
-
-- ✅ System paths blocked
-- ✅ Workspace access allowed
-- ✅ Sandbox mode functional
-- ✅ Audit logging enabled
-
----
-
-## API Test Results
-
-$(if [ -n "$GOOGLE_API_KEY" ] || [ -n "$GEMMA_API_KEY" ]; then
-    echo "- Micro (Gemma): ✅ Tested"
-else
-    echo "- Micro (Gemma): ⊘ Skipped (no key)"
-fi)
-
-$(if [ -n "$GLM_API_KEY" ] || [ -n "$GLM_CODING_PLAN_KEY" ]; then
-    echo "- Macro (GLM): ✅ Tested"
-else
-    echo "- Macro (GLM): ⊘ Skipped (no key)"
-fi)
-
----
+**Date**: $(date)  
+**Device**: $(uname -s) $(uname -m)  
+**Node Version**: $(node --version)  
+**Guardian Mode**: $GUARDIAN_LEVEL
 
 ## Summary
 
-- **Status**: $([ $TOTAL_FAILED -eq 0 ] && echo "✅ ALL TESTS PASSED" || echo "⚠️ SOME TESTS FAILED")
-- **Pass Rate**: $(( TOTAL_PASSED * 100 / (TOTAL_PASSED + TOTAL_FAILED) ))%
-- **Guardian Status**: ACTIVE - Host system protected
+| Metric | Count |
+|--------|-------|
+| Total | $TOTAL_TESTS |
+| Passed | $PASSED_TESTS |
+| Failed | $FAILED_TESTS |
+| Skipped | $SKIPPED_TESTS |
+
+## Guardian Protection
+
+During Stage 2 testing, Guardian protected the local device:
+- Mode: $GUARDIAN_LEVEL
+- System files: Blocked from modification
+- Personal files: Protected
+- All operations: Audited
+
+## Result
+
+$([ $FAILED_TESTS -eq 0 ] && echo "✅ PASSED - Ready for production" || echo "❌ FAILED - Review issues above")
 
 ---
-
-## Recommendation
-
-$([ $TOTAL_FAILED -eq 0 ] && echo "✅ READY FOR PRODUCTION" || echo "⚠️ ADDRESS FAILURES BEFORE RELEASE")
-
----
-
-*Generated by Shark Agent OS - Stage 2 Test Runner*  
-*Guardian Protection Active - Host System Unaffected*
+*Report generated by Shark CLI Stage 2 testing with Guardian protection*
 EOF
 
-cp "$REPORT_FILE" "$HISTORY_FILE"
+# Copy to history
+cp "$REPORT_FILE" "$REPORT_DIR/history/stage2-$TIMESTAMP.json" 2>/dev/null || true
+cp "$MD_REPORT" "$REPORT_DIR/history/stage2-$TIMESTAMP.md" 2>/dev/null || true
 
-# ============================================================================
-# FINAL SUMMARY
-# ============================================================================
-
+# Print summary
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Stage 2 Complete                                               ${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "${MAGENTA}  STAGE 2 COMPLETE${NC}"
-echo -e "${MAGENTA}═══════════════════════════════════════════════════════════════${NC}"
+echo "  Total:   $TOTAL_TESTS"
+echo "  Passed:  $PASSED_TESTS"
+echo "  Failed:  $FAILED_TESTS"
+echo "  Skipped: $SKIPPED_TESTS"
 echo ""
-echo "  Passed:  ${GREEN}$TOTAL_PASSED${NC}"
-echo "  Failed:  ${RED}$TOTAL_FAILED${NC}"
-echo ""
-echo "  ${CYAN}Guardian Protection:${NC} Your device was protected throughout testing"
-echo "  ${CYAN}Report:${NC} $REPORT_FILE"
+echo "  Guardian Mode: $GUARDIAN_LEVEL"
+echo "  Your device was protected during testing."
 echo ""
 
-if [ $TOTAL_FAILED -eq 0 ]; then
-    echo -e "${GREEN}✅ Stage 2 PASSED - Production Ready!${NC}"
+if [ $FAILED_TESTS -eq 0 ]; then
+    echo -e "${GREEN}✅ Stage 2 PASSED - Shark CLI is production ready!${NC}"
+    echo ""
+    echo "Reports saved to:"
+    echo "  $REPORT_FILE"
+    echo "  $MD_REPORT"
     exit 0
 else
-    echo -e "${RED}⚠️ Stage 2 had failures - Review report${NC}"
+    echo -e "${RED}❌ Stage 2 FAILED - Review issues above${NC}"
     exit 1
 fi

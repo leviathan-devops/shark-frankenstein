@@ -25,18 +25,20 @@ shark
 
 ## 🧠 Architecture
 
-### Micro Engineer (Precision Coding)
+### Micro Engineer (Full-Stack AI Coder)
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  🦈 MICRO ENGINEER                                  │
+│  🦈 MICRO ENGINEER - Full-Stack AI Coder (FREE)    │
 │                                                     │
 │  DeepSeek R1 ─────THINKS────→ Gemma 3 4B ─DOES→    │
 │  (Planning Brain)           (Execution Brain)       │
 │                                                     │
-│  ✅ FREE execution (14k RPD)                        │
-│  ✅ Best for: Single-file, syntax fixes, tests      │
-│  ✅ Like: Special Forces - surgical precision       │
+│  ✅ FREE execution (14k RPD via Google AI Studio)  │
+│  ✅ Full capabilities: features, refactoring,       │
+│     debugging, multi-file work, architecture,      │
+│     tests, DevOps - COMPLETE ENGINEERING           │
+│  ✅ Like: 10x engineer with infinite stamina        │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -157,43 +159,133 @@ shark-frankenstein/
 
 ### Use Micro Engineer When:
 
-- 📝 Single-file modifications
-- 🔧 Syntax fixes and debugging
-- ✅ Writing unit tests
+- 🎯 **ANY coding task** - it's a full-stack AI coder!
+- 📝 Features, refactoring, debugging
+- 🏗️ Architecture and multi-file work
+- ✅ Writing tests and documentation
 - 👀 Code reviews
-- 🎯 Linear coding tasks
-- 💰 Cost optimization (FREE execution)
+- 💰 **Cost optimization** - FREE execution (14k RPD)
+- ⚡ Quick iterations with instant feedback
 
 ### Use Macro Engineer When:
 
-- 🏗️ Multi-file architecture changes
-- 🚀 DevOps and CI/CD pipelines
-- ✨ Full feature development
-- 🔄 Complex refactoring
-- 📐 System design
-- 🔀 Multi-step workflows
+- 🔄 Complex multi-step orchestration
+- 🚀 Full DevOps pipeline setup
+- ✨ Autonomous project scaffolding
+- 🔀 Workflows requiring independent decision-making
+- 📐 Large-scale system migrations
+- 🤖 Tasks needing minimal human oversight
 
 ---
 
-## 🔒 Guardian (File Protection)
+## 🔒 Guardian (Universal Agent Firewall)
 
-Shark CLI includes a Guardian system for protecting critical files:
+**Guardian is NOT just for Docker - it protects ALL agent operations.**
+
+Guardian is the core safety rail that prevents agents from:
+- Modifying system files
+- Accessing personal credentials
+- Breaking critical configurations
+- Escaping designated workspace boundaries
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  GUARDIAN PROTECTION LEVELS                                     │
+├─────────────────────────────────────────────────────────────────┤
+│  STRICT     → Only explicit workspace allowed                   │
+│  BALANCED   → Workspace + dev folders (DEFAULT)                 │
+│  PERMISSIVE → Only critical system files blocked                │
+│  SANDBOX    → All writes redirected to isolated sandbox         │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ```typescript
-import { Guardian } from '@leviathan/shark-cli';
+import { Guardian, ProtectionLevel } from '@leviathan/shark-cli';
 
+// For testing (safest)
 const guardian = new Guardian({
-  enabled: true,
-  protectedFiles: ['./config/critical.json'],
+  level: ProtectionLevel.SANDBOX,
+  workspacePath: './my-project',
   autoBackup: true
 });
 
-// Protect a file (requires root/sudo)
-await guardian.protect('./important-file.ts');
+// For production
+const guardian = new Guardian({
+  level: ProtectionLevel.BALANCED,
+  workspacePath: './my-project',
+  auditLog: true
+});
 
-// Check before modification
-const decision = guardian.checkModification('./important-file.ts');
+// Check before any operation
+const decision = guardian.checkModification('/etc/passwd');
+// → ModificationDecision.DENY (system file)
+
+const decision2 = guardian.checkModification('./src/index.ts');
+// → ModificationDecision.ALLOW (workspace)
 ```
+
+### Zone Classification
+
+Guardian classifies all paths into zones:
+
+| Zone | Description | Can Modify? |
+|------|-------------|-------------|
+| WORKSPACE | Designated project folder | ✅ Yes |
+| SANDBOX | Isolated test environment | ✅ Yes |
+| DEVELOPMENT | ~/Projects, ~/code, etc. | ✅ Yes (BALANCED) |
+| PERSONAL | ~/.ssh, ~/.aws, Documents | ❌ No |
+| CONFIG | /etc, config files | ❌ No |
+| SYSTEM | /bin, /usr, /System | ❌ NEVER |
+
+---
+
+## 🧪 2-Stage Testing Protocol
+
+Shark CLI enforces a **2-Stage Testing Protocol** before any code is production-ready.
+
+### Stage 1: Docker Sandbox (Automated CI)
+
+```bash
+# Run Stage 1 tests
+npm run test:stage1
+
+# Or directly
+bash testing/run-stage1.sh
+```
+
+- Isolated environment (no host contamination)
+- Reproducible (same results every time)
+- Catches Docker-specific issues
+- Guardian runs in SANDBOX mode
+
+### Stage 2: Local Device (Real User Testing)
+
+```bash
+# Run Stage 2 tests (requires interactive terminal)
+npm run test:stage2
+
+# Safest mode - all writes to sandbox
+npm run test:stage2:sandbox
+
+# With real API calls
+npm run test:api
+```
+
+- Real TTY (interactive wizard works properly)
+- Actual network conditions
+- Real API key validation
+- **Guardian protects your local device**
+
+### Testing Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm test` | Run Stage 1 + quick Stage 2 |
+| `npm run test:stage1` | Docker sandbox tests |
+| `npm run test:stage2` | Local device tests |
+| `npm run test:stage2:sandbox` | Local tests in sandbox mode |
+| `npm run test:api` | Test real API calls |
+| `npm run test:guardian` | Guardian security tests |
 
 ---
 
