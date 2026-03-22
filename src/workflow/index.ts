@@ -181,7 +181,7 @@ export class Workflow {
     const result = await this.machine.runVerificationGate(gateMap[gate]);
 
     return {
-      status: result.status,
+      status: result.status === 'passed' ? 'passed' : 'failed',
       errors: result.errors,
       warnings: result.warnings,
     };

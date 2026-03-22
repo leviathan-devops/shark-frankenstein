@@ -13,13 +13,17 @@
 // ============================================================================
 
 /**
- * The 5-step build workflow
+ * The 6-step build workflow (upgraded to include Stage 3)
  *
  * Step 1: PLAN - Define what to build
  * Step 2: BUILD - Write the code
- * Step 3: TEST - 2-stage testing (Docker → Local)
+ * Step 3: TEST - 3-stage testing:
+ *   - Stage 1: Docker sandbox (CI container)
+ *   - Stage 2: Native container (CI endpoint)
+ *   - Stage 3: User endpoint (YOUR device)
  * Step 4: VERIFY - Gatekeeper (functional + intent + security)
- * Step 5: SHIP - Push to production
+ * Step 5: CRASH - Adversarial testing (optional, future)
+ * Step 6: SHIP - Push to production
  */
 export enum WorkflowStep {
   PLAN = 1,
@@ -67,8 +71,8 @@ export const STEP_REQUIREMENTS: Record<WorkflowStep, StepRequirement> = {
     validator: 'validateBuild',
   },
   [WorkflowStep.TEST]: {
-    files: ['.shark/test-results/stage1.json'],
-    commands: ['npm run test:stage1'],
+    files: ['.shark/test-results/stage1.json', '.shark/test-results/stage2.json', '.shark/test-results/stage3.json'],
+    commands: ['npm run test:stage1', 'npm run test:stage2'],
     validator: 'validateTests',
   },
   [WorkflowStep.VERIFY]: {
