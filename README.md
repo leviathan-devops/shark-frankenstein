@@ -51,7 +51,7 @@ shark
 │  GLM 4.5-flash ─────PRIMARY────→ Execution          │
 │  DeepSeek R1   ─────ADVISORY────→ Strategy          │
 │                                                     │
-│  ✅ Multi-iteration autonomous execution (up to 15) │
+│  ✅ Autonomous multi-step execution (self-iterates) │
 │  ✅ Built-in tools: file read/write, shell, search  │
 │  ✅ Strategic consultation between iterations       │
 │  ✅ Self-detects completion, auto-refines output    │
