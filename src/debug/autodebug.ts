@@ -103,6 +103,35 @@ export const KNOWN_ERRORS: KnownError[] = [
   },
 
   {
+    code: 'DOCKER_REPORT_PERM',
+    name: 'Docker Report File Permission Denied',
+    patterns: [
+      /stage1-latest\.json.*Permission denied/i,
+      /reports.*Permission denied/i,
+      /\.json.*Permission denied/i,
+    ],
+    category: 'docker',
+    severity: 'low',
+    autoFixable: true,
+    autoFix: async (ctx) => {
+      return {
+        success: true,
+        message: 'Fix: Create reports directory with open permissions in Dockerfile',
+        changes: ['RUN mkdir -p /app/testing/reports && chmod 777 /app/testing/reports'],
+        requiresRebuild: true,
+      };
+    },
+    manualFix: [
+      'Add to Dockerfile: RUN mkdir -p /app/testing/reports && chmod 777 /app/testing/reports',
+      'Or run container with --user root for report generation',
+    ],
+    prevention: [
+      'Create report directories with open permissions before switching user',
+      'Use named volumes instead of bind mounts for report output',
+    ],
+  },
+
+  {
     code: 'DOCKER_NPM_PERM',
     name: 'npm Install Permission Error',
     patterns: [
@@ -223,6 +252,70 @@ export const KNOWN_ERRORS: KnownError[] = [
   },
 
   {
+    code: 'TSC_NOT_FOUND',
+    name: 'TypeScript Compiler Not Found',
+    patterns: [
+      /tsc: not found/i,
+      /tsc: command not found/i,
+      /typescript.*not installed/i,
+    ],
+    category: 'typescript',
+    severity: 'high',
+    autoFixable: true,
+    autoFix: async (ctx) => {
+      return {
+        success: true,
+        message: 'Run npm install first to install TypeScript',
+        changes: ['Run: npm install (installs typescript from devDependencies)'],
+        requiresRerun: true,
+      };
+    },
+    manualFix: [
+      'npm install must be run BEFORE npm run build',
+      'Dependencies are defined in package.json but not yet installed',
+      'Always: npm install && npm run build',
+    ],
+    prevention: [
+      'Always run npm install after cloning/checkout',
+      'Add post-merge git hook to run npm install',
+    ],
+  },
+
+  {
+    code: 'API_METHOD_MISMATCH',
+    name: 'Client Method Does Not Exist',
+    patterns: [
+      /client\.chat is not a function/i,
+      /\.execute is not a function/i,
+      /\.plan is not a function/i,
+      /is not a function.*Client/i,
+    ],
+    category: 'typescript',
+    severity: 'medium',
+    autoFixable: true,
+    autoFix: async (ctx) => {
+      return {
+        success: true,
+        message: 'Use correct client methods: execute() for Gemma/GLM, plan() for DeepSeek',
+        changes: [
+          'GemmaClient: use client.execute(prompt)',
+          'GLMClient: use client.execute(prompt)',
+          'DeepSeekClient: use client.plan(prompt) or client.generatePlan(task)',
+        ],
+        requiresRerun: true,
+      };
+    },
+    manualFix: [
+      'Check client API before calling methods:',
+      '  GemmaClient.execute(prompt) → BrainResponse',
+      '  GLMClient.execute(prompt) → BrainResponse',
+      '  DeepSeekClient.plan(prompt) → string',
+      '  DeepSeekClient.generatePlan(task, context) → string',
+    ],
+    prevention: ['Always check the actual client interface before writing tests'],
+  },
+
+  {
     code: 'TS_COMPILE_ERROR',
     name: 'TypeScript Compilation Error',
     patterns: [
@@ -334,6 +427,37 @@ export const KNOWN_ERRORS: KnownError[] = [
       'Use Micro mode for simpler tasks (faster)',
     ],
     prevention: ['Set appropriate timeouts for complex operations'],
+  },
+
+  {
+    code: 'API_RATE_LIMIT',
+    name: 'API Rate Limit Exceeded (HTTP 429)',
+    patterns: [
+      /Request failed with status code 429/i,
+      /rate limit.*exceeded/i,
+      /too many requests/i,
+      /quota.*exhausted/i,
+      /HTTP 429/i,
+    ],
+    category: 'network',
+    severity: 'medium',
+    autoFixable: false,
+    manualFix: [
+      'API quota exhausted - NOT a code defect:',
+      '',
+      'Option 1: Wait 24 hours for quota reset',
+      'Option 2: Use different API key',
+      'Option 3: Upgrade to paid tier',
+      '',
+      'GLM: Free tier has limited daily quota',
+      'Google: 14,000 RPD free tier',
+      'DeepSeek: Limited free tier',
+    ],
+    prevention: [
+      'Monitor API usage with shark usage',
+      'Implement request caching to reduce calls',
+      'Use Micro mode (Gemma) for free tier (14k RPD)',
+    ],
   },
 
   {

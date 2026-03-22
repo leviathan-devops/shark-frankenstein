@@ -34,8 +34,8 @@ const client = new GemmaClient();
 
 async function test() {
     try {
-        const response = await client.chat('Say \"test ok\" and nothing else.');
-        console.log('SUCCESS:', response.substring(0, 50));
+        const response = await client.execute('Say \"test ok\" and nothing else.');
+        console.log('SUCCESS:', response.content.substring(0, 50));
     } catch (error) {
         console.log('ERROR:', error.message);
     }
@@ -68,8 +68,8 @@ const client = new GLMClient();
 
 async function test() {
     try {
-        const response = await client.chat('Say \"test ok\" and nothing else.');
-        console.log('SUCCESS:', response.substring(0, 50));
+        const response = await client.execute('Say \"test ok\" and nothing else.');
+        console.log('SUCCESS:', response.content.substring(0, 50));
     } catch (error) {
         console.log('ERROR:', error.message);
     }
@@ -102,7 +102,7 @@ const client = new DeepSeekClient();
 
 async function test() {
     try {
-        const response = await client.chat('Say \"test ok\" and nothing else.');
+        const response = await client.plan('Say \"test ok\" and nothing else.');
         console.log('SUCCESS:', response.substring(0, 50));
     } catch (error) {
         console.log('ERROR:', error.message);
