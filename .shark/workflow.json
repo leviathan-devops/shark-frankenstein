@@ -1,0 +1,39 @@
+{
+  "currentStep": 1,
+  "completedSteps": [],
+  "verification": {
+    "functional": {
+      "gate": "functional",
+      "status": "pending",
+      "timestamp": "2026-03-23T00:25:09.822Z",
+      "details": "Not yet verified",
+      "errors": [],
+      "warnings": []
+    },
+    "intent": {
+      "gate": "intent",
+      "status": "pending",
+      "timestamp": "2026-03-23T00:25:09.822Z",
+      "details": "Not yet verified",
+      "errors": [],
+      "warnings": []
+    },
+    "security": {
+      "gate": "security",
+      "status": "pending",
+      "timestamp": "2026-03-23T00:25:09.822Z",
+      "details": "Not yet verified",
+      "errors": [],
+      "warnings": []
+    },
+    "allPassed": false,
+    "timestamp": "2026-03-23T00:25:09.822Z"
+  },
+  "loopAttempts": 0,
+  "totalResets": 0,
+  "blocked": false,
+  "workspacePath": "/home/z/shark-frankenstein-fresh",
+  "createdAt": "2026-03-23T00:25:09.822Z",
+  "updatedAt": "2026-03-23T00:25:09.822Z",
+  "originalPrompt": "test prompt"
+}

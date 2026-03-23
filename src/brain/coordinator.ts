@@ -1,5 +1,5 @@
 /**
- * 🦈 SHARK CLI - Dual-Brain Coordinator
+ * 🦈 SHARK CLI - Dual-Brain Coordinator (FIXED with Tool Execution)
  * 
  * Coordinates the dual-brain architecture with the correct model assignments:
  * 
@@ -14,6 +14,8 @@
  * - Advisory Brain: DeepSeek R1 (strategic consultation)
  * - Architecture: GLM leads, DeepSeek advises
  * - Use case: Multi-file architecture, DevOps, CI/CD, complex systems
+ * 
+ * ✅ FIXED: Now integrates Guardian and ToolExecutor for ACTUAL file operations
  */
 
 import { DeepSeekClient } from './deepseek';
@@ -26,7 +28,10 @@ import {
   ConversationEntry,
   BrainExecutionOptions,
   BrainResponse,
+  ToolCall,
 } from './types';
+import { Guardian, createProductionGuardian } from '../guardian';
+import { ToolExecutor, ToolResult } from '../tools/executor';
 
 /**
  * Coordinator configuration
@@ -46,10 +51,18 @@ export interface CoordinatorConfig {
   
   /** Gemma region (US or SEA only for free tier) */
   gemmaRegion?: 'us' | 'sea';
+  
+  /** ✅ FIXED: Workspace path for Guardian */
+  workspacePath?: string;
+  
+  /** ✅ FIXED: Use Gemma proxy for EU region bypass */
+  useGemmaProxy?: boolean;
 }
 
 /**
  * Coordinates dual-brain architecture for task execution
+ * 
+ * ✅ FIXED: Now includes Guardian protection and actual tool execution
  */
 export class DualBrainCoordinator {
   private mode: BrainMode;
@@ -58,12 +71,28 @@ export class DualBrainCoordinator {
   private maxIterations: number;
   private autoApprove: boolean;
   private verbose: boolean;
+  private workspacePath: string;
+  private guardian: Guardian;
+  private toolExecutor: ToolExecutor;
 
   constructor(config: CoordinatorConfig) {
     this.mode = config.mode;
     this.maxIterations = config.maxIterations || 10;
     this.autoApprove = config.autoApprove ?? false;
     this.verbose = config.verbose ?? false;
+    this.workspacePath = config.workspacePath || process.cwd();
+
+    // ✅ FIXED: Initialize Guardian
+    this.guardian = createProductionGuardian(this.workspacePath);
+    this.log('🛡️  Guardian initialized for coordinator');
+
+    // ✅ FIXED: Initialize ToolExecutor
+    this.toolExecutor = new ToolExecutor({
+      guardian: this.guardian,
+      workspacePath: this.workspacePath,
+      verbose: this.verbose,
+    });
+    this.log('🔧 ToolExecutor initialized');
 
     // Initialize brain clients based on mode
     this.planningBrain = new DeepSeekClient();
@@ -71,7 +100,10 @@ export class DualBrainCoordinator {
     // CRITICAL: Use Gemma for Micro, GLM for Macro
     if (this.mode === BrainMode.MICRO) {
       // Micro Engineer: Gemma 3 4B (free tier executor)
-      this.executionBrain = new GemmaClient({ region: config.gemmaRegion || 'sea' });
+      this.executionBrain = new GemmaClient({ 
+        region: config.gemmaRegion || 'sea',
+        useProxy: config.useGemmaProxy,
+      });
       this.log('Micro Engineer mode: Using Gemma 3 4B as execution brain (14k RPD free tier)');
     } else {
       // Macro Engineer: GLM 4.5-flash (autonomous execution)
@@ -121,6 +153,13 @@ export class DualBrainCoordinator {
       execution: this.executionBrain.isConfigured(),
       executionModel: this.mode === BrainMode.MICRO ? 'Gemma 3 4B' : 'GLM 4.5-flash',
     };
+  }
+
+  /**
+   * Get Guardian instance
+   */
+  getGuardian(): Guardian {
+    return this.guardian;
   }
 
   /**
@@ -194,6 +233,19 @@ Output clean, working code. Follow the plan step by step.`;
       phase: 'execution',
       timestamp: new Date(),
     });
+
+    // ✅ FIXED: Process tool calls if any
+    if (executionResult.toolCalls && executionResult.toolCalls.length > 0) {
+      this.log(`Processing ${executionResult.toolCalls.length} tool calls...`);
+      const toolResults = await this.processToolCalls(executionResult.toolCalls);
+      
+      history.push({
+        brain: BrainType.EXECUTION,
+        content: `Tool Results:\n${toolResults.map(r => r.result).join('\n')}`,
+        phase: 'tool_execution',
+        timestamp: new Date(),
+      });
+    }
 
     iterations = 1;
 
@@ -297,6 +349,27 @@ Output clean, working code. Follow the plan step by step.`;
 
       allOutputs.push(result.content);
 
+      // ✅ FIXED: Process tool calls if any
+      if (result.toolCalls && result.toolCalls.length > 0) {
+        this.log(`Processing ${result.toolCalls.length} tool calls...`);
+        const toolResults = await this.processToolCalls(result.toolCalls);
+        
+        history.push({
+          brain: BrainType.EXECUTION,
+          content: `Tool Results:\n${toolResults.map(r => `${r.name}: ${r.success ? 'OK' : 'FAILED'}`).join('\n')}`,
+          phase: `tool_execution_round_${iterations}`,
+          timestamp: new Date(),
+        });
+
+        // Feed tool results back to GLM if needed
+        const failedTools = toolResults.filter(r => !r.success && r.guardianBlocked);
+        if (failedTools.length > 0) {
+          this.log('Some tools were blocked by Guardian, informing GLM...');
+          currentTask = `Previous work:\n${result.content}\n\nGuardian blocked these operations:\n${failedTools.map(t => `- ${t.name}: ${t.guardianReason}`).join('\n')}\n\nPlease revise your approach to avoid protected paths.`;
+          continue;
+        }
+      }
+
       // Step 3: Check for completion
       if (this.isComplete(result.content)) {
         this.log('Task appears complete');
@@ -343,10 +416,40 @@ Output clean, working code. Follow the plan step by step.`;
   }
 
   /**
+   * ✅ FIXED: Process tool calls with Guardian protection
+   */
+  private async processToolCalls(toolCalls: ToolCall[]): Promise<ToolResult[]> {
+    const results: ToolResult[] = [];
+
+    for (const toolCall of toolCalls) {
+      this.log(`Executing tool: ${toolCall.name}`);
+      
+      const result = await this.toolExecutor.executeTool(toolCall);
+      results.push(result);
+
+      if (result.guardianBlocked) {
+        this.log(`⚠️  Guardian blocked: ${toolCall.name} - ${result.guardianReason}`);
+      } else if (result.success) {
+        this.log(`✅ Tool executed: ${toolCall.name}`);
+      } else {
+        this.log(`❌ Tool failed: ${toolCall.name} - ${result.result}`);
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Quick execution without planning (for simple tasks)
    */
   async quickExecute(task: string, options?: BrainExecutionOptions): Promise<string> {
     const result = await this.executionBrain.execute(task, options);
+    
+    // ✅ FIXED: Process any tool calls
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      await this.processToolCalls(result.toolCalls);
+    }
+    
     return result.content;
   }
 
