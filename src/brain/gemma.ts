@@ -27,6 +27,7 @@ import {
 const GEMMA_MODEL = 'gemma-3-4b-it';
 const DEFAULT_TIMEOUT = 120000;
 const DEFAULT_REGION: GemmaApiRegion = 'sea';
+const RAILWAY_PROXY_URL = 'https://shark-gemini-proxy-production.up.railway.app';
 
 /**
  * Google Generative AI response structure for Gemma
@@ -95,12 +96,16 @@ export class GemmaClient {
   private model: string;
   private region: GemmaApiRegion;
   private timeout: number;
+  private useProxy: boolean;
+  private proxyUrl: string;
 
   constructor(config?: Partial<GemmaClientConfig>) {
     this.apiKey = config?.apiKey || process.env.GOOGLE_API_KEY || process.env.GEMMA_API_KEY || null;
     this.model = config?.model || GEMMA_MODEL;
     this.region = config?.region || DEFAULT_REGION;
     this.timeout = config?.timeout || DEFAULT_TIMEOUT;
+    this.useProxy = config?.useProxy ?? (process.env.GEMMA_USE_PROXY === 'true');
+    this.proxyUrl = config?.proxyUrl || process.env.GEMMA_PROXY_URL || RAILWAY_PROXY_URL;
 
     // Validate region - must be US or SEA
     if (this.region !== 'us' && this.region !== 'sea') {
@@ -118,6 +123,9 @@ export class GemmaClient {
     // Log region for debugging
     if (process.env.SHARK_DEBUG) {
       console.log(`🦈 Gemma client initialized with region: ${this.region.toUpperCase()}`);
+      if (this.useProxy) {
+        console.log(`🦈 Using proxy: ${this.proxyUrl}`);
+      }
     }
   }
 
@@ -146,9 +154,24 @@ export class GemmaClient {
   }
 
   /**
+   * Enable or disable the Railway proxy
+   */
+  setUseProxy(useProxy: boolean, proxyUrl?: string): void {
+    this.useProxy = useProxy;
+    if (proxyUrl) {
+      this.proxyUrl = proxyUrl;
+    }
+  }
+
+  /**
    * Get the API endpoint for the current region
    */
   private getEndpoint(method: string = 'generateContent'): string {
+    // If using proxy, route through Railway
+    if (this.useProxy) {
+      return `${this.proxyUrl}/v1beta/models/${this.model}:${method}?key=${this.apiKey}`;
+    }
+    
     const baseUrl = GEMMA_API_ENDPOINTS[this.region];
     return `${baseUrl}/${this.model}:${method}?key=${this.apiKey}`;
   }

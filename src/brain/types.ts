@@ -100,6 +100,12 @@ export interface GemmaClientConfig extends BrainClientConfig {
   
   /** Request timeout in milliseconds */
   timeout?: number;
+  
+  /** Use Railway proxy to bypass region restrictions */
+  useProxy?: boolean;
+  
+  /** Custom proxy URL (defaults to Railway Singapore proxy) */
+  proxyUrl?: string;
 }
 
 /**
