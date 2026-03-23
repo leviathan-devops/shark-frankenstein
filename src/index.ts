@@ -65,13 +65,5 @@ export {
   createCIGuardian,
 } from './guardian';
 
-// Wizard (interactive mode selection)
-export {
-  WizardResult,
-  runWizard,
-  switchMode,
-  displaySetupInstructions,
-} from './wizard';
-
 // Utils
 export { readStdin } from './utils/stdin';
