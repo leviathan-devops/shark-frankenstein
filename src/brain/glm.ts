@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { BrainClientConfig, BrainExecutionOptions, BrainResponse, BrainType, TokenUsage, ToolCall } from './types';
 
-// Coding Plan endpoint (different from standard)
 const GLM_API_URL = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
-const GLM_MODEL = 'glm-4.5';
+const GLM_MODEL = 'glm-4.7';
 
 interface GLMResponse {
   id: string;
@@ -12,7 +11,12 @@ interface GLMResponse {
   choices: Array<{
     index: number;
     finish_reason: string;
-    message: { role: string; content: string | null; tool_calls?: Array<{id: string; type: string; function: {name: string; arguments: string}}>; };
+    message: { 
+      role: string; 
+      content: string | null; 
+      reasoning_content?: string;
+      tool_calls?: Array<{id: string; type: string; function: {name: string; arguments: string}}>; 
+    };
   }>;
   usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number; };
 }
@@ -51,11 +55,13 @@ export class GLMClient {
 
     const data = response.data;
     const choice = data.choices[0];
+    // Handle thinking models that return reasoning_content
+    const content = choice.message.content || choice.message.reasoning_content || '';
     const toolCalls = choice.message.tool_calls?.map(tc => ({ id: tc.id, name: tc.function.name, arguments: JSON.parse(tc.function.arguments) })) as ToolCall[] | undefined;
 
     return {
-      content: choice.message.content || '',
-      hasCodeChanges: (choice.message.content?.includes('```') || !!toolCalls?.length) ?? false,
+      content,
+      hasCodeChanges: (content.includes('```') || !!toolCalls?.length) ?? false,
       tokensUsed: { promptTokens: data.usage.prompt_tokens, completionTokens: data.usage.completion_tokens, totalTokens: data.usage.total_tokens },
       sourceBrain: BrainType.EXECUTION,
       toolCalls,
